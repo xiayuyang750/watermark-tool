@@ -1,0 +1,31 @@
+# 数据目录（含敏感配置 config.json、登录态、日志、下载输出、浏览器档案，严禁上传）
+.data/
+backend-rust/_data/
+backend-rust/_test_out/
+
+# 前端依赖与构建产物
+desktop/node_modules/
+desktop/dist/
+
+# 编译产物
+desktop/src-tauri/target/
+backend-rust/target/
+backend-go/wm-backend.exe
+backend/dist/
+backend/build/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 日志与数据库
+*.log
+*.db
+
+# IDE / 系统
+.trae/
+.DS_Store
+Thumbs.db
+
+# 个人整理文件（非项目代码）
+*.xlsx

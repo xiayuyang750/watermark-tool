@@ -1,0 +1,22 @@
+[package]
+name = "watermark-backend-rs"
+version = "0.2.2"
+edition = "2021"
+description = "Watermark Tool Rust 后端（替代 Python FastAPI，逻辑与 Python 版保持一致）"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tower-http = { version = "0.6", features = ["cors"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = { version = "1", features = ["v4"] }
+reqwest = { version = "0.12", features = ["json", "stream", "blocking"] }
+chrono = "0.4"
+futures-util = "0.3"
+base64 = "0.22"
+md-5 = "0.10"
+regex = "1"
+tokio-tungstenite = "0.24"
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "builder", "hostname", "rustls-tls"] }
