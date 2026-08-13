@@ -1,6 +1,6 @@
 # 🎬 Watermark Tool 水印工坊
 
-一个轻量、免安装运行时的**抖音 / X（Twitter）视频图片下载工具**，支持解析、在线预览、一键下载。Windows 桌面端基于 Tauri 2 构建，后端为 Rust（axum）原生实现，安装包仅 **5MB 左右**。
+一个轻量、免安装运行时的**抖音 / X（Twitter）视频图片下载工具**，支持解析、在线预览、一键下载。Windows 桌面端基于 Tauri 2 构建，后端为 Go 原生实现（零第三方运行时依赖），安装包约 **8MB**。
 
 > ⚠️ 仅限个人合法素材使用，请尊重原创与平台规则。
 
@@ -34,7 +34,7 @@
 
 前往 [Releases](https://github.com/xiayuyang750/watermark-tool/releases) 页面下载最新安装包：
 
-- `Watermark Tool_<版本>_x64-setup.exe`（Windows x64，约 5MB）
+- `Watermark Tool_<版本>_x64-setup.exe`（Windows x64，约 8MB）
 
 安装后打开即用：解析区输入链接 → 一键解析 → 预览 / 下载。
 
@@ -51,8 +51,8 @@
 └───────────────────────┬────────────────────────┘
                         │  HTTP（127.0.0.1:17890）
 ┌───────────────────────▼────────────────────────┐
-│ Rust 后端（axum，随应用分发 sidecar）            │
-│   · 任务队列（rusqlite） · 配置 · 反馈           │
+│ Go 后端（net/http，随应用分发 sidecar）          │
+│   · 任务队列（JSON 持久化） · 配置 · 反馈        │
 │   · 媒体代理（UA/Referer/Range） · 风控诊断      │
 └───┬───────────────────────┬────────────────────┘
     │                       │
@@ -65,19 +65,20 @@ Edge CDP（抖音/登录）      纯 HTTP（X）
 
 - **前端**：Vue 3 + Element Plus + Pinia（网页预览 / 桌面共用一套代码）
 - **桌面壳**：Tauri 2（WebView2 + NSIS 安装包）
-- **后端**：Rust（axum / tokio / reqwest / rusqlite / tokio-tungstenite），API 契约与历史 Python 版完全一致
-- **体积对比**：Rust 重构后安装包 **134MB → 5MB**（-96%），解压体积 440MB → 18.3MB
+- **后端**：Go（net/http 标准库 / chromedp），API 契约与历史 Python/Rust 版完全一致
+- **体积对比**：Go 重构后安装包 **134MB → 8MB**（约 -94%），后端二进制约 12.5MB（零第三方运行时）
 
 ---
 
 ## 🚀 开发预览（网页模式）
 
-桌面与网页共用一套代码。本地起 Rust 后端 + Vite 前端即可在浏览器中开发调试：
+桌面与网页共用一套代码。本地起 Go 后端 + Vite 前端即可在浏览器中开发调试：
 
 ```bash
 # 后端
-cd backend-rust
-cargo run --release
+cd backend-go
+go build -o wm-backend.exe .
+.\wm-backend.exe
 
 # 前端（另开终端）
 cd desktop
@@ -95,15 +96,15 @@ npm run dev
 ├─ desktop/                 # Tauri 桌面端（Vue 前端 + 桌面壳）
 │  ├─ src/                  #   Vue 3 前端（视图/组件/API/状态）
 │  └─ src-tauri/            #   桌面壳（含 NSIS 打包配置）
-├─ backend-rust/            # Rust 后端（axum）
-│  └─ src/
-│     ├─ parsers/           #   解析器（douyin / x / sign / cdp）
-│     ├─ tasks/             #   下载任务队列
-│     ├─ x_login.rs         #   X 登录引导（Edge CDP）
-│     └─ main.rs            #   12 个 API 端点注册
+├─ backend-go/              # Go 后端（net/http + chromedp）
+│  ├─ main.go               #   12 个 API 端点注册
+│  ├─ douyin.go / x.go      #   抖音 / X 解析器
+│  ├─ browser.go            #   Edge CDP 浏览器管理
+│  └─ tasks.go              #   下载任务队列（JSON 持久化）
+├─ backend-rust/            # 历史 Rust 后端（已退役，备份保留）
 ├─ backend/                 # 历史 Python 后端（已退役，备份保留）
 ├─ CHANGELOG.md             # 更新日志
-└─ REFACTOR_PLAN.md         # Rust 重构计划
+└─ REFACTOR_PLAN.md         # 重构计划
 ```
 
 ---
