@@ -1,5 +1,29 @@
 # 更新日志（CHANGELOG）
 
+## v0.3.6（2026-08-14）
+
+> 新增 Android APK 打包支持：Go 后端交叉编译 arm64 嵌入 APK，安卓端可安装运行。
+
+### 🤖 Android 支持
+
+- `tauri android init` 生成 Gradle 工程，构建产出 arm64 APK（`WatermarkTool-0.3.6-arm64.apk`）
+- Go 后端交叉编译（`GOOS=android GOARCH=arm64`）编译期嵌入 Rust 壳（include_bytes），运行时解压到 app 数据目录启动
+- 安卓端后端数据目录指向 app 数据目录（无 USERPROFILE/HOME 环境变量）；release 版放行 cleartext（本机 HTTP 后端）
+- `dyKillStaleEdge` 加平台判断：安卓跳过（无 msedge/powershell）
+- **平台能力**：X 解析/下载可用；抖音解析依赖 Windows Edge 内核，安卓本机暂不可用
+
+### 🛠️ 构建环境（一次性）
+
+- Android SDK / NDK（27.x）、Rust 安卓 target（aarch64-linux-android 等）
+- 交叉编译链接器配置：`desktop/src-tauri/.cargo/config.toml`
+- Gradle 依赖走国内镜像（`~/.gradle/init.d/mirror-aliyun.gradle`，腾讯云/官方 Central）
+- Windows 需开发者模式或手动复制 `.so` 到 jniLibs 以绕开 symlink 限制
+
+### 📦 其他
+
+- 版本号 `0.3.5 → 0.3.6`（tauri.conf.json、Cargo.toml、package.json、后端 health）
+- README 更新：新增安卓下载与能力说明
+
 ## v0.3.6（2026-08-13）
 
 > 工程化改进：新增三后端可选启动脚本，修复启动脚本在 Windows PowerShell 5.1 下的中文乱码。
