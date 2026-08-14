@@ -1,0 +1,5 @@
+# Cargo 安卓链接器配置：Rust 交叉编译到 aarch64-linux-android 需要 NDK 的 clang 作链接器。
+# 路径基于本机 ANDROID_NDK_HOME（%LOCALAPPDATA%\Android\Sdk\ndk\27.2.12479018）。
+# 若 NDK 路径变更，请同步更新此处。
+[target.aarch64-linux-android]
+linker = "C:\\Users\\21494\\AppData\\Local\\Android\\Sdk\\ndk\\27.2.12479018\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\aarch64-linux-android24-clang.cmd"

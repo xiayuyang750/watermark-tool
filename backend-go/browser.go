@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	gort "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -73,7 +74,11 @@ var dyBrowser struct {
 
 // dyKillStaleEdge 结束所有命令行含 watermark-tool-cdp 的 msedge 进程（进程树 + 二次确认，
 // 防止残留未完全退出占用档案导致新实例启动即失败）。
+// 注意：仅 Windows 需要（安卓无 msedge / powershell，直接跳过）。
 func dyKillStaleEdge() {
+	if gort.GOOS != "windows" {
+		return
+	}
 	script := `
 $ps = Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match 'watermark-tool-cdp' }
 foreach ($p in $ps) { taskkill /PID $p.ProcessId /T /F 2>$null | Out-Null }

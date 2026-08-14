@@ -35,10 +35,12 @@
 前往 [Releases](https://github.com/xiayuyang750/watermark-tool/releases) 页面下载最新安装包：
 
 - `Watermark Tool_<版本>_x64-setup.exe`（Windows x64，约 8MB）
+- `WatermarkTool-<版本>-arm64.apk`（Android arm64，约 150MB，X 平台可用）
 
 安装后打开即用：解析区输入链接 → 一键解析 → 预览 / 下载。
 
-> 数据目录：`C:\Users\<你>\ .watermark-tool`（配置、任务记录、下载输出，卸载不影响该目录）
+> 数据目录（Windows）：`C:\Users\<你>\ .watermark-tool`（配置、任务记录、下载输出，卸载不影响该目录）
+> 安卓版说明：内置 Go 后端，X 平台解析/下载可用；抖音解析依赖 Windows Edge 浏览器内核，安卓本机暂不可用。
 
 ---
 
