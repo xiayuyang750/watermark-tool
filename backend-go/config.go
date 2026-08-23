@@ -133,5 +133,9 @@ func publicConfig(cfg *Config) map[string]interface{} {
 		"remove_content_wm":  cfg.RemoveContentWm,
 		"output_dir":         cfg.OutputDir,
 		"backend_port":       cfg.BackendPort,
+		"smtp_host":          cfg.SMTPHost,
+		"smtp_port":          cfg.SMTPPort,
+		"smtp_user":          cfg.SMTPUser,
+		"feedback_to":        cfg.FeedbackTo,
 	}
 }

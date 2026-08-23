@@ -2,65 +2,51 @@
 import { ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, DocumentCopy, Link, VideoPlay } from '@element-plus/icons-vue'
-import { api, mediaProxyUrl, type ParseResult, type Platform } from '../api/client'
+import { api, mediaProxyUrl, type HistoryItem, type ParseResult, type Platform } from '../api/client'
 import { useConfigStore } from '../stores/config'
 import MediaViewer from '../components/MediaViewer.vue'
 
 const config = useConfigStore()
 
-interface HistoryItem {
-  id: string
-  input: string
-  time: string
-  result: ParseResult
-}
-
-const HISTORY_MAX = 50
-// 解析历史按平台独立存储
-function historyKey(p: Platform) {
-  return `wm_parse_history_${p}`
-}
-
 const platform = ref<Platform>('douyin')
-
-function loadHistoryFor(p: Platform): HistoryItem[] {
-  try {
-    const raw = localStorage.getItem(historyKey(p))
-    return raw ? (JSON.parse(raw) as HistoryItem[]) : []
-  } catch {
-    return []
-  }
-}
-
-function saveHistoryFor(p: Platform, list: HistoryItem[]) {
-  try {
-    localStorage.setItem(historyKey(p), JSON.stringify(list.slice(0, HISTORY_MAX)))
-  } catch {
-    /* 存储满/不可用时静默失败，不影响主流程 */
-  }
-}
-
-function loadHistory(): HistoryItem[] {
-  return loadHistoryFor(platform.value)
-}
-
-function saveHistory(list: HistoryItem[]) {
-  saveHistoryFor(platform.value, list)
-}
 
 const url = ref('')
 const parsing = ref(false)
 const result = ref<ParseResult | null>(null)
-const history = ref<HistoryItem[]>(loadHistory())
+const history = ref<HistoryItem[]>([])
 const expandedId = ref<string | null>(null)
 
+// 从后端加载当前平台历史
+async function loadHistory() {
+  try {
+    const data = await api.listHistory(platform.value)
+    history.value = data.items ?? []
+  } catch {
+    history.value = []
+  }
+}
+
+// 全量保存当前平台历史到后端（清空/删除后整体提交）
+async function saveHistory(list: HistoryItem[]) {
+  try {
+    const data = await api.replaceHistory(platform.value, list)
+    history.value = data.items ?? list
+  } catch {
+    /* 保存失败保持现状 */
+  }
+}
+
 // 切换平台：重置解析结果并加载对应平台的历史（不会打断正在进行的解析请求）
-watch(platform, () => {
-  result.value = null
-  url.value = ''
-  expandedId.value = null
-  history.value = loadHistory()
-})
+watch(
+  platform,
+  async () => {
+    result.value = null
+    url.value = ''
+    expandedId.value = null
+    await loadHistory()
+  },
+  { immediate: true },
+)
 
 const placeholderText = {
   douyin: '粘贴或输入抖音分享链接（可直接编辑修改）',
@@ -94,7 +80,11 @@ async function onParse() {
       time: new Date().toLocaleString(),
       result: res,
     }
-    saveHistoryFor(fromPlatform, [item, ...loadHistoryFor(fromPlatform)])
+    try {
+      await api.addHistory(fromPlatform, item)
+    } catch {
+      /* 历史保存失败不影响解析结果 */
+    }
     // 仅当仍停留在发起平台时展示结果；否则提示已入历史
     if (platform.value === fromPlatform) {
       result.value = res
@@ -138,14 +128,14 @@ async function clearHistory() {
     return // 用户取消
   }
   history.value = []
-  saveHistory([])
+  await saveHistory([])
   ElMessage.success('历史已清空')
 }
 
 // 单独删除某一条历史记录
-function removeHistory(id: string) {
+async function removeHistory(id: string) {
   history.value = history.value.filter((h) => h.id !== id)
-  saveHistory(history.value)
+  await saveHistory(history.value)
   if (expandedId.value === id) expandedId.value = null
   ElMessage.success('已删除该条记录')
 }
@@ -256,7 +246,7 @@ function thumbUrl(item: HistoryItem): string | null {
 </template>
 
 <style scoped>
-.home { max-width: 720px; }
+.home { max-width: 720px; width: 100%; min-width: 0; }
 .card { margin-bottom: 16px; }
 .platform-switch { display: flex; justify-content: center; margin-bottom: 16px; }
 .parse-btn { margin-top: 12px; }

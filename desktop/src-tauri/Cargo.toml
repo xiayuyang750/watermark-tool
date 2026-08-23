@@ -17,6 +17,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
+# 生产构建（含安卓 APK）必须启用 custom-protocol，否则 WebView 会加载 devUrl(localhost:5173) 而非打包 assets
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }

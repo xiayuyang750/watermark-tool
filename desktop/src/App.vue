@@ -16,6 +16,9 @@ const feedbackContent = ref('')
 const feedbackContact = ref('')
 const submitting = ref(false)
 
+// 安卓端检测：Tauri 移动端 WebView 的 UA 含 Android；桌面/web 不含
+const isAndroid = /Android/i.test(navigator.userAgent)
+
 // 版本与更新检查
 const currentVersion = ref('')
 const checkingUpdate = ref(false)
@@ -82,6 +85,10 @@ async function checkUpdate() {
 }
 
 async function startXLogin() {
+  if (isAndroid) {
+    ElMessage.warning('安卓端暂不支持 X 登录（依赖桌面版 Edge 浏览器内核）')
+    return
+  }
   xLoginRunning.value = true
   xLoginStatus.value = 'running'
   xLoginError.value = ''
@@ -164,7 +171,7 @@ async function submitFeedback() {
       <router-view />
     </main>
 
-    <el-drawer v-model="drawerOpen" title="设置" size="320px">
+    <el-drawer v-model="drawerOpen" title="设置" size="min(320px, 86vw)">
       <el-form label-width="90px">
         <el-form-item label="输出目录">
           <el-input v-model="config.outputDir" placeholder="下载保存路径（不带引号）" />
@@ -204,6 +211,31 @@ async function submitFeedback() {
           <el-button :icon="ChatDotRound" @click="feedbackOpen = true">反馈 Bug / 建议</el-button>
         </el-form-item>
         <el-divider />
+        <div class="smtp-title">问题反馈邮箱（SMTP）</div>
+        <el-form-item label="SMTP 主机">
+          <el-input v-model="config.smtpHost" placeholder="smtp.qq.com" />
+        </el-form-item>
+        <el-form-item label="SMTP 端口">
+          <el-input v-model.number="config.smtpPort" placeholder="465" />
+        </el-form-item>
+        <el-form-item label="发件账号">
+          <el-input v-model="config.smtpUser" placeholder="xxx@qq.com" />
+        </el-form-item>
+        <el-form-item label="授权码">
+          <el-input
+            v-model="config.smtpAuthCode"
+            type="password"
+            show-password
+            placeholder="SMTP 授权码（不回显，留空保持不变）"
+          />
+        </el-form-item>
+        <el-form-item label="收件邮箱">
+          <el-input v-model="config.feedbackTo" placeholder="接收反馈的邮箱" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="saveOutputDir">保存邮箱配置</el-button>
+        </el-form-item>
+        <el-divider />
         <el-form-item label="关于">
           <div class="about">
             <div class="ver-line">
@@ -224,7 +256,7 @@ async function submitFeedback() {
       </el-form>
     </el-drawer>
 
-    <el-dialog v-model="feedbackOpen" title="问题反馈" width="480px">
+    <el-dialog v-model="feedbackOpen" title="问题反馈" width="min(480px, 92vw)">
       <el-input
         v-model="feedbackContent"
         type="textarea"
@@ -247,17 +279,24 @@ async function submitFeedback() {
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body, #app { height: 100%; }
-.layout { height: 100%; display: flex; flex-direction: column; background: #f5f7fa; }
+.layout {
+  height: 100%; display: flex; flex-direction: column; background: #f5f7fa;
+  overflow-x: hidden;
+}
 .topbar {
   height: 56px; background: #1f2d3d; color: #fff; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+  display: flex; align-items: center; justify-content: space-between; padding-left: 20px; padding-right: 20px;
 }
 .logo { font-size: 17px; font-weight: 600; }
 .top-actions { display: flex; align-items: center; gap: 12px; }
 .disclaimer { font-size: 12px; color: #7f8fa4; }
 .settings-btn { color: #1f2d3d; }
-.main { flex: 1; overflow-y: auto; padding: 20px; display: flex; justify-content: center; }
+.main {
+  flex: 1; overflow-y: auto; padding: 20px;
+  display: flex; justify-content: center; overflow-x: hidden;
+}
 .fb-contact { margin-top: 10px; }
+.smtp-title { font-size: 13px; font-weight: 600; color: #1f2d3d; margin-bottom: 10px; }
 .x-login { width: 100%; }
 .x-login-tip { margin-top: 8px; font-size: 12px; line-height: 1.5; }
 .x-login-tip .ok { color: #67c23a; }
@@ -272,4 +311,15 @@ html, body, #app { height: 100%; }
 .update-tip .err { color: #f56c6c; }
 .update-tip .idle { color: #909399; }
 .update-tip a { color: #409eff; }
+
+/* 手机窄屏微调 */
+@media (max-width: 560px) {
+  .main { padding: 12px; }
+  .topbar { padding-left: 12px; padding-right: 12px; }
+  .disclaimer { display: none; }
+  .x-login { display: none; }
+  .mv-actions { flex-direction: column; }
+  .mv-actions .el-button { margin-left: 0; width: 100%; }
+  .hist-head { flex-wrap: wrap; }
+}
 </style>

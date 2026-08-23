@@ -33,6 +33,14 @@ export interface TaskItem {
   created_at: string
 }
 
+/** 解析历史记录（后端持久化，避免 WebView localStorage 兼容问题）。 */
+export interface HistoryItem {
+  id: string
+  input: string
+  time: string
+  result: ParseResult
+}
+
 /** GitHub Releases latest 响应（检查更新用，仅取需要的字段）。 */
 export interface GitHubRelease {
   tag_name: string
@@ -65,6 +73,13 @@ export const api = {
     client.post('/feedback', { content, contact }).then((r) => r.data),
   startXLogin: () => client.post('/x/login/start').then((r) => r.data),
   xLoginStatus: () => client.get<XLoginStatus>('/x/login/status').then((r) => r.data),
+  // 解析历史（后端持久化）
+  listHistory: (platform: string) =>
+    client.get<{ items: HistoryItem[] }>('/history', { params: { platform } }).then((r) => r.data),
+  addHistory: (platform: string, item: HistoryItem) =>
+    client.post<{ items: HistoryItem[] }>('/history', { platform, item }).then((r) => r.data),
+  replaceHistory: (platform: string, items: HistoryItem[]) =>
+    client.put<{ items: HistoryItem[] }>('/history', { platform, items }).then((r) => r.data),
   // 检查更新：直连 GitHub Releases API（GitHub 允许跨域，无需后端中转）
   checkUpdate: (owner: string, repo: string) =>
     axios

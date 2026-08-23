@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -137,12 +138,16 @@ func handleNotImplemented(feature string) http.HandlerFunc {
 }
 
 // handleShutdown 优雅关闭后端。
+// 注意：c-shared（安卓 JNI 库）模式下禁用 os.Exit——会直接终止整个 app 进程导致闪退；
+// 仅关闭常驻浏览器资源即可。
 func handleShutdown(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true})
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		dyTeardown() // 关闭常驻浏览器，避免残留 Chromium 进程
-		os.Exit(0)
+		if runtime.GOOS != "android" {
+			os.Exit(0)
+		}
 	}()
 }
 
@@ -211,7 +216,8 @@ func handleCancelTask(w http.ResponseWriter, r *http.Request) {
 	apiError(w, http.StatusBadRequest, "任务不存在或不可取消")
 }
 
-func main() {
+// startServer 启动本地 HTTP 服务（桌面 main 与安卓 JNI 共用入口）。
+func startServer() {
 	cfg := loadConfig()
 	port := cfg.BackendPort
 
@@ -231,12 +237,16 @@ func main() {
 	mux.HandleFunc("GET /api/v1/tasks/{id}", handleGetTask)
 	mux.HandleFunc("POST /api/v1/tasks/{id}/cancel", handleCancelTask)
 	mux.HandleFunc("GET /api/v1/diagnose", handleNotImplemented("诊断"))
+	mux.HandleFunc("GET /api/v1/history", handleListHistory)
+	mux.HandleFunc("POST /api/v1/history", handleAddHistory)
+	mux.HandleFunc("PUT /api/v1/history", handleReplaceHistory)
 	mux.HandleFunc("POST /api/v1/x/login/start", handleXLoginStart)
 	mux.HandleFunc("GET /api/v1/x/login/status", handleXLoginStatus)
 
 	addr := "127.0.0.1:" + strconv.Itoa(port)
 	log.Printf("Watermark Tool Go 后端已启动: http://%s", addr)
 	if err := http.ListenAndServe(addr, corsMiddleware(mux)); err != nil {
-		log.Fatalf("服务异常退出: %v", err)
+		// 注意：c-shared（安卓 JNI 库）模式下禁用 log.Fatalf（会 os.Exit 杀进程），仅打印
+		log.Printf("服务异常退出: %v", err)
 	}
 }

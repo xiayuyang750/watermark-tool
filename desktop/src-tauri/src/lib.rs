@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::net::TcpStream;
 use std::path::PathBuf;
-use std::process::{Child, Command};
+use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -9,11 +9,9 @@ use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
 const BACKEND_PORT: u16 = 17890;
 
-// 安卓端：Go 后端 ELF 编译期嵌入，运行时解压到 app 数据目录再执行。
-// （Tauri 2 的 externalBin/sidecar 在 Android 构建上不受支持，故用 include_bytes 方案）
-// 二进制由 backend-go 交叉编译产出：CGO_ENABLED=0 GOOS=android GOARCH=arm64 go build -o binaries/wm-backend-aarch64-linux-android .
-#[cfg(mobile)]
-const BACKEND_BIN: &[u8] = include_bytes!("../binaries/wm-backend-aarch64-linux-android");
+// 安卓端：Go 后端以 JNI 库（c-shared）打进 APK，由 MainActivity 经 System.loadLibrary
+// 加载到 App 进程内运行（Android/HarmonyOS SELinux 禁止 app exec 数据目录二进制，
+// 仅 APK 内 native lib 可加载；Tauri externalBin/sidecar 在移动端同样不受支持）。
 
 /// 后端端口已有进程监听则视为后端已在运行，避免重复启动。
 fn backend_running() -> bool {
@@ -34,23 +32,11 @@ fn request_backend_shutdown() {
     }
 }
 
-/// 安卓端：把嵌入的 Go 后端写入 app 数据目录并启动。
+/// 安卓端：Go 后端由 MainActivity 通过 System.loadLibrary 加载（JNI 库），
+/// 无需在 Rust 侧拉起子进程。
 #[cfg(mobile)]
-fn start_backend_mobile(app: &tauri::App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
-    let data_dir = app.path().app_data_dir()?;
-    let bin_path = data_dir.join("wm-backend");
-    std::fs::write(&bin_path, BACKEND_BIN)?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755))?;
-    }
-    let child = Command::new(&bin_path)
-        .env("WATERMARK_TOOL_SPAWNED", "1")
-        .env("WATERMARK_TOOL_HOME", data_dir.to_string_lossy().to_string())
-        .spawn()
-        .ok();
-    Ok(child)
+fn start_backend_mobile(_app: &tauri::App) -> Result<Option<Child>, Box<dyn std::error::Error>> {
+    Ok(None)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -75,7 +61,9 @@ pub fn run() {
             // 启动随包分发的后端；端口被占用则复用已有实例
             if !backend_running() {
                 #[cfg(mobile)]
-                let started = start_backend_mobile(app).unwrap_or(None);
+                let started = start_backend_mobile(app)
+                    .map_err(|e| eprintln!("[wm-mobile] start_backend_mobile error: {e}"))
+                    .unwrap_or(None);
                 #[cfg(not(mobile))]
                 let started = {
                     let exe = app
