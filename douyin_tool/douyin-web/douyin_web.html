@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抖音视频下载器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 640px;
+    padding: 40px 24px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fe2c55, #25f4ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 32px;
+  }
+
+  .input-group {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 16px;
+    background: #161622;
+    border: 1px solid #2a2a3a;
+    border-radius: 12px;
+    color: #e0e0e0;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus {
+    border-color: #fe2c55;
+  }
+
+  textarea::placeholder {
+    color: #555;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #fe2c55, #d91a40);
+    color: #fff;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(254, 44, 85, 0.3);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .result {
+    display: none;
+    margin-top: 24px;
+    background: #161622;
+    border: 1px solid #2a2a3a;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .result.show { display: block; }
+
+  .result-cover {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+  }
+
+  .result-info {
+    padding: 16px;
+  }
+
+  .result-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.5;
+    word-break: break-all;
+  }
+
+  .btn-download {
+    background: linear-gradient(135deg, #25f4ee, #1abfb8);
+    color: #0a0a0f;
+  }
+
+  .btn-download:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(37, 244, 238, 0.3);
+  }
+
+  .status {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #666;
+    min-height: 20px;
+  }
+
+  .status.error { color: #fe2c55; }
+  .status.success { color: #25f4ee; }
+
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #444;
+    border-top-color: #fe2c55;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 12px;
+    color: #444;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>抖音视频下载器</h1>
+  <p class="subtitle">粘贴分享链接，解析并下载无水印视频</p>
+
+  <div class="input-group">
+    <textarea id="input" placeholder="粘贴抖音分享文本或链接&#10;&#10;例如：2.84 :1pm bAg:/ j@p.Qk 暑假作息混乱？...&#10;https://v.douyin.com/xxxxx/"></textarea>
+  </div>
+
+  <button class="btn btn-primary" id="parseBtn" onclick="handleParse()">解析视频</button>
+
+  <div class="status" id="status"></div>
+
+  <div class="result" id="result">
+    <img class="result-cover" id="cover" src="" alt="封面">
+    <div class="result-info">
+      <div class="result-title" id="title"></div>
+      <button class="btn btn-download" id="downloadBtn" onclick="handleDownload()">下载视频</button>
+    </div>
+  </div>
+
+  <div class="footer">视频保存在服务端 downloads/ 目录</div>
+</div>
+
+<script>
+  let downloadUrl = '';
+
+  function setStatus(text, type = '') {
+    const el = document.getElementById('status');
+    el.className = 'status' + (type ? ' ' + type : '');
+    el.innerHTML = text;
+  }
+
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    if (loading) {
+      btn.dataset.originalText = btn.textContent;
+      btn.innerHTML = '<span class="spinner"></span>处理中...';
+    } else {
+      btn.textContent = btn.dataset.originalText || btn.textContent;
+    }
+  }
+
+  async function handleParse() {
+    const input = document.getElementById('input').value.trim();
+    if (!input) {
+      setStatus('请输入链接', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('parseBtn');
+    setLoading(btn, true);
+    document.getElementById('result').classList.remove('show');
+    setStatus('<span class="spinner"></span>正在解析（首次约需 10-20 秒）...', '');
+
+    try {
+      const resp = await fetch('/api/parse?url=' + encodeURIComponent(input));
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.detail || '解析失败');
+      }
+
+      downloadUrl = data.download_url;
+
+      // 显示封面
+      const coverEl = document.getElementById('cover');
+      if (data.cover) {
+        coverEl.src = data.cover;
+        coverEl.style.display = 'block';
+      } else {
+        coverEl.style.display = 'none';
+      }
+
+      document.getElementById('title').textContent = data.title;
+      document.getElementById('result').classList.add('show');
+      setStatus('解析成功，点击下方按钮下载', 'success');
+    } catch (e) {
+      setStatus('错误: ' + e.message, 'error');
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  async function handleDownload() {
+    if (!downloadUrl) return;
+
+    const btn = document.getElementById('downloadBtn');
+    setLoading(btn, true);
+    setStatus('<span class="spinner"></span>正在下载...', '');
+
+    try {
+      // 使用 a 标签触发浏览器原生下载
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = '';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setStatus('下载已开始', 'success');
+    } catch (e) {
+      setStatus('下载失败: ' + e.message, 'error');
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  // 支持 Ctrl+V 粘贴后自动解析
+  document.getElementById('input').addEventListener('paste', () => {
+    setTimeout(() => {
+      const val = document.getElementById('input').value.trim();
+      if (val && (val.includes('douyin.com') || val.includes('v.douyin'))) {
+        handleParse();
+      }
+    }, 100);
+  });
+</script>
+</body>
+</html>

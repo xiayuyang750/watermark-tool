@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>多平台下载器</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 顶部平台切换（对齐桌面版 platform-switch） -->
+  <div class="platform-switch">
+    <button class="platform-btn active" data-platform="douyin" onclick="switchPlatform('douyin')">抖音</button>
+    <button class="platform-btn" data-platform="x" onclick="switchPlatform('x')">X（推特）</button>
+  </div>
+
+  <!-- 解析作品链接 卡片 -->
+  <div class="card">
+    <div class="card-title">解析作品链接</div>
+    <div class="input-wrap">
+      <textarea id="input" placeholder="粘贴分享文本&#10;&#10;抖音：https://v.douyin.com/xxxxx/"></textarea>
+      <button class="clear-btn" onclick="clearInput()" title="清除">✕</button>
+      <button class="paste-btn" onclick="pasteFromClipboard()" title="粘贴">📋</button>
+    </div>
+    <button class="btn btn-primary" id="parseBtn" onclick="handleParse()">解析</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <!-- 解析结果 卡片（解析成功才显示） -->
+  <div class="card result" id="result">
+    <div class="card-title">解析结果</div>
+    <div class="result-title" id="title"></div>
+    <div class="media-stage" id="mediaStage"></div>
+    <button class="btn btn-download" id="downloadBtn" onclick="handleDownload()">下载到手机</button>
+  </div>
+
+  <!-- 解析历史 卡片（独立） -->
+  <div class="card history">
+    <div class="history-head">
+      <span class="card-title">解析历史</span>
+      <button class="history-clear" id="clearBtn" onclick="clearHistory()">清空</button>
+    </div>
+    <div class="history-empty" id="historyEmpty">暂无解析历史</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

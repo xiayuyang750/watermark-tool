@@ -1,0 +1,9 @@
+# Gradle / Android 构建产物（不入库）
+douyin-android/.gradle/
+douyin-android/local.properties
+douyin-android/app/build/
+douyin-android/build/
+
+# Python 缓存
+douyin-web/__pycache__/
+*.pyc
